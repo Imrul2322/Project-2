@@ -15,7 +15,7 @@ import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_auc_score, roc_curve
 
 FIGURES_DIR = Path(__file__).parent.parent / "reports" / "figures"
 PALETTE = {"No": "#2ecc71", "Yes": "#e74c3c"}
@@ -172,9 +172,7 @@ def plot_roc_curves(
         for (name, model), color in zip(models.items(), colors):
             y_prob = model.predict_proba(X_test)[:, 1]
             fpr, tpr, _ = roc_curve(y_test, y_prob)
-            auc = roc_curve.__module__ and __import__(
-                "sklearn.metrics", fromlist=["roc_auc_score"]
-            ).roc_auc_score(y_test, y_prob)
+            auc = roc_auc_score(y_test, y_prob)
             ax.plot(fpr, tpr, color=color, linewidth=2, label=f"{name} (AUC={auc:.3f})")
 
         ax.set_xlabel("False Positive Rate", fontsize=12)

@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate dataset
+        run: python scripts/generate_data.py
+
+      - name: Run unit tests with coverage
+        run: |
+          python -m pytest tests/ -v \
+            --cov=src \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --tb=short
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        if: matrix.python-version == '3.11'
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install linting tools
+        run: pip install flake8
+
+      - name: Run flake8
+        run: |
+          flake8 src/ scripts/ app/ \
+            --max-line-length=100 \
+            --ignore=E501,W503,E203 \
+            --exclude=__pycache__
+
+  train-smoke:
+    name: Training Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate small dataset
+        run: python scripts/generate_data.py --samples 500 --seed 1
+
+      - name: Run training pipeline (smoke test)
+        run: python scripts/train_pipeline.py --test-size 0.3
+
+      - name: Verify model artefact exists
+        run: test -f models/best_model.joblib && echo "Model saved successfully"

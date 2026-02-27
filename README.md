@@ -4,6 +4,7 @@
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-orange?logo=scikit-learn)
 ![XGBoost](https://img.shields.io/badge/XGBoost-2.0+-red)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.29+-ff4b4b?logo=streamlit)
+![Tests](https://img.shields.io/badge/tests-39%20passed-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 An end-to-end machine learning project that predicts telecom customer churn — from raw data generation through exploratory analysis, feature engineering, model training, and an interactive Streamlit demo.
@@ -48,6 +49,28 @@ Raw Data                   EDA                  Feature Engineering
 
 ---
 
+## Visualizations
+
+### Churn Distribution & Target Variable
+![Churn Distribution](reports/figures/01_churn_distribution.png)
+
+### Churn Rate by Contract Type — Top Predictor
+![Churn by Contract](reports/figures/churn_rate_contract.png)
+
+### Churn Rate by Tenure & Monthly Charges
+![Tenure vs Charges](reports/figures/02_tenure_charges_by_churn.png)
+
+### ROC Curves — Model Comparison
+![ROC Curves](reports/figures/04_roc_curves.png)
+
+### Top 15 Feature Importances
+![Feature Importance](reports/figures/06_feature_importance.png)
+
+### Business Value
+![Business Value](reports/figures/business_value.png)
+
+---
+
 ## Results
 
 | Model | ROC-AUC | F1 Score | Precision | Recall |
@@ -81,7 +104,9 @@ Raw Data                   EDA                  Feature Engineering
 Project-2/
 ├── README.md                      ← You are here
 ├── requirements.txt               ← Python dependencies
+├── Makefile                       ← Common task shortcuts (make train, make test, make app)
 ├── .gitignore
+├── .github/workflows/ci.yml       ← GitHub Actions: test + lint + training smoke test
 │
 ├── data/
 │   ├── raw/telco_churn.csv        ← Generated dataset (10K rows, 21 cols)
@@ -105,8 +130,14 @@ Project-2/
 ├── app/
 │   └── streamlit_app.py           ← Interactive prediction web app
 │
-└── models/
-    └── best_model.joblib          ← Serialized model + preprocessor
+├── models/
+│   └── best_model.joblib          ← Serialized model + preprocessor
+│
+└── tests/
+    ├── test_data_generation.py    ← 12 tests: schema, distributions, reproducibility
+    ├── test_features.py           ← 13 tests: engineered features correctness
+    ├── test_models.py             ← 8 tests: training, metrics, business value
+    └── test_preprocessing.py      ← 7 tests: pipeline, NaN-free output, target encoding
 ```
 
 ---
@@ -119,17 +150,21 @@ git clone <repo-url>
 cd Project-2
 pip install -r requirements.txt
 
-# 2. Generate the dataset
+# 2. Run everything with Make
+make data       # → data/raw/telco_churn.csv (10,000 rows)
+make train      # → trains all 4 models, saves models/best_model.joblib
+make test       # → runs 39 unit tests
+make app        # → launches Streamlit at http://localhost:8501
+
+# Or run the full pipeline in one command
+make all
+```
+
+Or manually:
+```bash
 python scripts/generate_data.py
-# → data/raw/telco_churn.csv (10,000 rows)
-
-# 3. Train all models
 python scripts/train_pipeline.py
-# → prints metrics table, saves models/best_model.joblib
-
-# 4. Launch the interactive app
 streamlit run app/streamlit_app.py
-# → open http://localhost:8501 in your browser
 ```
 
 ---
@@ -198,6 +233,26 @@ Key synthetic correlations encoded:
 | Web app | streamlit |
 | Model persistence | joblib |
 | Notebooks | jupyter |
+| Testing | pytest, pytest-cov |
+| CI/CD | GitHub Actions |
+
+---
+
+## Testing
+
+```bash
+# Run all 39 unit tests
+make test
+
+# Run with coverage report
+make test-cov
+```
+
+Tests cover:
+- Data generation: schema validation, churn rate range, reproducibility, domain correlations
+- Feature engineering: correctness of all 5 derived features, no NaN introduction, immutability
+- Preprocessing: pipeline output shape, NaN-free encoding, train/test consistency
+- Models: training + CV, metric keys, AUC above baseline, business value calculation
 
 ---
 
